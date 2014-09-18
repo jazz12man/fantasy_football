@@ -1,20 +1,21 @@
-## initialize at start of season
-# scoring_leaders_scoring_period = sapply(all_matchups,function(x) NULL)
 
-load(file=paste0(shiny_directory,"www/data_files/scoring_leaders_scoring_period.Rdata"))
+## initialize at start of season
+# projections_scoring_period = sapply(all_matchups,function(x) NULL)
+# names(projections_scoring_period) = gsub(" ","_",names(projections_scoring_period))
+
+
+load(file=paste0(shiny_directory,"/www/data_files/projections_scoring_period.Rdata"))
 load(file=paste0(shiny_directory,"www/data_files/team_lookup.Rdata"))
 load(file=paste0(shiny_directory,"www/data_files/players_id_lookup.Rdata"))
 
-
-start_index = seq(0,5000,by=50)
+start_index = seq(0,5000,by=40)
 ind0 = 1
 starti = 1
-scoring_leaders_all = NULL
+projections_all = NULL
 while(ind0==1) {
-  url = paste0("http://games.espn.go.com/ffl/leaders?leagueId=",
-               league_id,"&teamId=1&scoringPeriodId=",
-               scoring_period,"&startIndex=",
-               start_index[starti])
+  url = paste0("http://games.espn.go.com/ffl/tools/projections?leagueId=",league_id,
+               "&teamId=1&scoringPeriodId=",scoring_period,
+               "&startIndex=",start_index[starti])
   
   url_in = getURL(url)
   doc = htmlTreeParse(url_in, useInternalNodes=T)
@@ -24,10 +25,10 @@ while(ind0==1) {
   player_table = readHTMLTable(xpathSApply(body,"//*/table")[[2]],stringsAsFactors=F)
   colnames_i = player_table[1,]
   player_table = data.frame(player_table[-1,],stringsAsFactors=F)
-  colnames_i[colnames_i==""] = "drop"
+  if(sum(colnames_i=="")>0) colnames_i[colnames_i==""] = "drop"
   colnames(player_table) = colnames_i
-  player_table = player_table[,-which(colnames(player_table)=="drop")]
-  scoring_leaders_all[[starti]] = player_table
+  if("drop" %in% colnames_i) player_table = player_table[,-which(colnames(player_table)=="drop")]
+  projections_all[[starti]] = player_table
   if(player_table$PTS[nrow(player_table)] == "--" | is.na(player_table$PTS[nrow(player_table)])) {
     ind0 = 0
   } else {
@@ -36,33 +37,32 @@ while(ind0==1) {
 }
 
 
-scoring_leaders_table = do.call(rbind,scoring_leaders_all)
-last_relevant_row = min(which(scoring_leaders_table$PTS == "--" | is.na(scoring_leaders_table$PTS)))-1
-scoring_leaders_table = scoring_leaders_table[1:last_relevant_row,]
+scoring_projections_all = do.call(rbind,projections_all)
+last_relevant_row = min(which(scoring_projections_all$PTS == "--" | is.na(scoring_projections_all$PTS)))-1
+scoring_projections_all = scoring_projections_all[1:last_relevant_row,]
 
-scoring_leaders_table[scoring_leaders_table[,1]=="",1] = NA
-name_split = do.call(rbind,strsplit(scoring_leaders_table[,1],","))
+scoring_projections_all[scoring_projections_all[,1]=="",1] = NA
+name_split = do.call(rbind,strsplit(scoring_projections_all[,1],","))
 name = gsub("\\*","",name_split[,1])
-name = name_cleanup(name)
+name = gsub(" D/ST\u00A0D/ST","",name)
 team_pos = do.call(rbind,strsplit(name_split[,2],"\u00A0"))
 team = gsub(" ","",team_pos[,1])
-team = gsub("D/ST","",team)
 pos = team_pos[,2]
-type = scoring_leaders_table$TYPE
+type = scoring_projections_all$TYPE
 type[grep("WA \\(",type)] = "FA"
-colnames(scoring_leaders_table) = gsub("\u00A0","",colnames(scoring_leaders_table))
+colnames(scoring_projections_all) = gsub("\u00A0","",colnames(scoring_projections_all))
 
-COMP_ATT = data.frame(do.call(rbind,strsplit(scoring_leaders_table[,"C/A"],"/")),stringsAsFactors=F)
+COMP_ATT = data.frame(do.call(rbind,strsplit(scoring_projections_all[,"C/A"],"/")),stringsAsFactors=F)
 colnames(COMP_ATT) = c("COMP","ATT")
-scoring_leaders_table = scoring_leaders_table[,-c(1:6)]
-scoring_leaders_table = cbind( data.frame(PLAYER=name,
-                                          TEAM=team,
-                                          POS=pos,
-                                          TYPE=type,
-                                          stringsAsFactors=F),
-                               scoring_leaders_table)
-colnames(scoring_leaders_table)[match(c("YDS","TD","YDS.1","TD.1","YDS.2","TD.2","TD.3"),colnames(scoring_leaders_table))] = c('PASS_YARDS','PASS_TD','RUSH_YARDS','RUSH_TD','REC_YARDS','REC_TD',"MISC_TD")
-scoring_leaders_table[,-c(1:4)] = apply(scoring_leaders_table[,-c(1:4)],2,as.numeric)
+scoring_projections_all = scoring_projections_all[,-c(1:6)]
+scoring_projections_all = cbind( data.frame(PLAYER=name,
+                                            TEAM=team,
+                                            POS=pos,
+                                            TYPE=type,
+                                            stringsAsFactors=F),
+                                 scoring_projections_all)
+colnames(scoring_projections_all)[match(c("YDS","TD","YDS.1","TD.1","YDS.2","TD.2"),colnames(scoring_projections_all))] = c('PASS_YARDS','PASS_TD','RUSH_YARDS','RUSH_TD','REC_YARDS','REC_TD')
+scoring_projections_all[,-c(1:4)] = apply(scoring_projections_all[,-c(1:4)],2,as.numeric)
 
 ### Baseline Points ##########
 pos_multiplier = data.frame(POS = slot_pos,
@@ -107,7 +107,7 @@ pos_multiplier$baseline_no = pos_multiplier$multiplier*nrow(teams_table)
 
 baseline_values = NULL
 for(bi in 1:nrow(pos_multiplier)) {
-  players_i = scoring_leaders_table[scoring_leaders_table$POS==pos_multiplier$POS[bi],]
+  players_i = scoring_projections_all[scoring_projections_all$POS==pos_multiplier$POS[bi],]
   if(nrow(players_i)>0) {
     baseline_values[[bi]] = players_i$PTS[min(nrow(players_i),ceiling(pos_multiplier$baseline_no[bi]))]    
   } else {
@@ -117,12 +117,12 @@ for(bi in 1:nrow(pos_multiplier)) {
 names(baseline_values) = pos_multiplier$POS
 
 ## Calculate points above baseline
-scoring_leaders_table$PTS_abv_repl = 
-  scoring_leaders_table$PTS -
-  baseline_values[match(scoring_leaders_table$POS,names(baseline_values))]
+scoring_projections_all$PTS_abv_repl = 
+  scoring_projections_all$PTS -
+  baseline_values[match(scoring_projections_all$POS,names(baseline_values))]
 
 ## match with player ID
-id_match = scoring_leaders_table[,c("PLAYER","TEAM")]
+id_match = scoring_projections_all[,c("PLAYER","TEAM")]
 id_match$TEAM = tolower(id_match$TEAM)
 id_match$TEAM[id_match$TEAM=="jac"] = "jax"
 id_match$ORDER = 1:nrow(id_match)
@@ -134,22 +134,21 @@ matched_ids = merge(id_match,
                     sort=F,
                     incomparables=-1)
 matched_ids = matched_ids[order(matched_ids$ORDER),]
-scoring_leaders_table$player_id = matched_ids$ID
-scoring_leaders_table$scoring_period_id = paste0("scoring_period_",scoring_period)
+scoring_projections_all$player_id = matched_ids$ID
+scoring_projections_all$scoring_period_id = paste0("scoring_period_",scoring_period)
 
-scoring_leaders_table$player_id[scoring_leaders_table$PLAYER %in% team_lookup$team_name] = 
-  team_lookup$team_id[match(scoring_leaders_table$PLAYER[scoring_leaders_table$PLAYER %in% team_lookup$team_name],
-        team_lookup$team_name)]
+scoring_projections_all$player_id[scoring_projections_all$PLAYER %in% team_lookup$team_name] = 
+  team_lookup$team_id[match(scoring_projections_all$PLAYER[scoring_projections_all$PLAYER %in% team_lookup$team_name],
+                            team_lookup$team_name)]
 
-scoring_leaders_table$team_id = teams_table$team_no[match(scoring_leaders_table$TYPE,teams_table$nickname)]
-
+scoring_projections_all$team_id = teams_table$team_no[match(scoring_projections_all$TYPE,teams_table$nickname)]
 
 ### Save scoring leaders table ##########
-scoring_leaders_scoring_period[[paste0("scoring_period_",scoring_period)]] = scoring_leaders_table
-save(scoring_leaders_scoring_period,
-     file=paste0(shiny_directory,"/www/data_files/scoring_leaders_scoring_period.Rdata"))
-scoring_leaders_all = do.call(rbind,scoring_leaders_scoring_period)
-write.csv(scoring_leaders_all,file=paste0(shiny_directory,"www/data_files/scoring_leaders_all.csv"),
+projections_scoring_period[[paste0("scoring_period_",scoring_period)]] = scoring_projections_all
+save(projections_scoring_period,
+     file=paste0(shiny_directory,"/www/data_files/projections_scoring_period.Rdata"))
+projections_all = do.call(rbind,projections_scoring_period)
+write.csv(projections_all,file=paste0(shiny_directory,"www/data_files/projections_all.csv"),
           row.names=F)
 
 

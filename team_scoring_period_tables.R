@@ -6,7 +6,8 @@ stat_columns = c("COMP","ATT","PASS_YARDS","PASS_TD","INT","RUSH","RUSH_YARDS","
 
 ## placeholder - I think this will be an iniput; need to think about how to update
 # scoring_period_id=input$scoring_period_id
-load(file=paste0(shiny_directory,"/www/data_files/scoring_leaders_all.Rdata"))
+load(file=paste0(shiny_directory,"/www/data_files/scoring_leaders_scoring_period.Rdata"))
+scoring_leaders_table = scoring_leaders_scoring_period[[paste0("scoring_period_",scoring_period)]]
 
 ## initialize team_tables_all (only at start of season, then load)
 # team_tables_all = sapply(team_no,function(x) NULL)
@@ -14,10 +15,10 @@ load(file=paste0(shiny_directory,"/www/data_files/scoring_leaders_all.Rdata"))
 load(file=paste0(shiny_directory,"/www/data_files/team_tables_all.Rdata"))
 
 ## Iterate through 
-for(team_id in team_no) {
+for(team_id in teams_table$team_no) {
   url = paste0("http://games.espn.go.com/ffl/boxscorefull?leagueId=",league_id,
                "&teamId=",team_id,
-               "&scoringPeriodId=",scoring_period_id,
+               "&scoringPeriodId=",scoring_period,
                "&seasonId=",season_id,
                "&view=scoringperiod&version=full")
   url_in = getURL(url)
@@ -36,11 +37,19 @@ for(team_id in team_no) {
     x[x[,2]=="",2] = NA
     name_split = do.call(rbind,strsplit(x[,2],","))
     name = gsub("\\*","",name_split[,1])
+    name = gsub(" D/ST\u00A0D/ST","",name)
+    
     if(length(name_split)>1) {
       team_pos = do.call(rbind,strsplit(name_split[,2],"\u00A0"))
       team = gsub(" ","",team_pos[,1])
-      pos = team_pos[,2]
+      if(ncol(team_pos)<2) {
+        pos = rep(NA,nrow(team_pos))
+        pos[1] = "POS"
+      } else {
+        pos = team_pos[,2]
+      }
       team[team=="TEAMPOS"] = "TEAM"
+      team = gsub("D/ST","",team)
       pos[pos==" TEAM POS"] = "POS"
     } else {
       name = team = strsplit(name[[1]]," ")[[1]][1]
@@ -65,7 +74,12 @@ for(team_id in team_no) {
     return(table_out)
   })
   names(player_tables_all) = lapply(player_tables_all,function(x) {
-    starters_table$lookup_table[match(x[nrow(x),"POS"],starters_table$abbr)]
+    w_match = which(x$POS!="")[1]
+    if(is.na(w_match)) {
+      x$POS[1] = x$SLOT[1]
+      w_match = 1
+    }
+    starters_table$lookup_table[match(x[w_match,"POS"],starters_table$abbr)]
   })
   
   ### Bench Tables ##########
@@ -112,7 +126,6 @@ for(team_id in team_no) {
   w_start_tables = 1:(which(names(player_tables_all)=="OFFENSE")[2]-1)
   w_bench_tables = 1:(which(names(bench_tables_all)=="OFFENSE")[2]-1)
   
-  
   ### iterate through starter tables ##########
   starters_out = NULL
   for(i in w_start_tables) {
@@ -128,6 +141,7 @@ for(team_id in team_no) {
       colnames(player_tables_i)[match(c("YDS","TD","YDS.1","TD.1","YDS.2","TD.2","TD.3"),colnames(player_tables_i))] = c('PASS_YARDS','PASS_TD','RUSH_YARDS','RUSH_TD','REC_YARDS','REC_TD',"MISC_TD")
     } else if(names(player_tables_all)[[i]]=="KICKERS") {
       kick_cols = c("1-39","40-49","50+","TOT","XP")
+      player_tables_i[player_tables_i=="--"] = "--/--"
       splits = lapply(kick_cols,function(x) strsplit(player_tables_i[,x],"/"))
       kick_vals = data.frame(matrix(unlist(lapply(splits,function(x) x[[1]])),
                                     nrow=nrow(player_tables_i),
@@ -292,7 +306,7 @@ for(team_id in team_no) {
   starter_table[opt_subs,]
   
   starter_table$team_id = team_id
-  starter_table$scoring_period_id = scoring_period_id
+  starter_table$scoring_period_id = paste0("scoring_period_",scoring_period)
   
   ### Cycle through Stat Categories  ##########
   stat_cats = unlist(lapply(starters_out,colnames))
@@ -317,7 +331,7 @@ for(team_id in team_no) {
   bench_all_stats = merge(bench_all_stats,
                           scoring_leaders_table[,c("PLAYER","TEAM","POS","PTS_abv_repl")],
                           by=c("PLAYER","TEAM","POS"),all.x=T)
-    
+  
   ## add in Targets
   starters_all_stats = merge(starters_all_stats,
                              scoring_leaders_table[,c("PLAYER","TEAM","POS","TAR")],
@@ -334,8 +348,8 @@ for(team_id in team_no) {
                              scoring_leaders_table[,c("PLAYER","TEAM","POS","player_id")],
                              by=c("PLAYER","TEAM","POS"),all.x=T)
   bench_all_stats = merge(bench_all_stats,
-                             scoring_leaders_table[,c("PLAYER","TEAM","POS","player_id")],
-                             by=c("PLAYER","TEAM","POS"),all.x=T)
+                          scoring_leaders_table[,c("PLAYER","TEAM","POS","player_id")],
+                          by=c("PLAYER","TEAM","POS"),all.x=T)
   
   
   ### Add starter Stat summaries ##########
@@ -438,6 +452,7 @@ for(team_id in team_no) {
       }
       
       stats_list = unlist(stats_list)
+      if(is.null(stats_list)) stats_list = rep(NA,4)
       if(sum(is.na(stats_list))>0)
         stats_list = stats_list[!is.na(stats_list)]
       
@@ -548,6 +563,7 @@ for(team_id in team_no) {
       }
       
       stats_list = unlist(stats_list)
+      if(is.null(stats_list)) stats_list = rep(NA,4)
       if(sum(is.na(stats_list))>0)
         stats_list = stats_list[!is.na(stats_list)]
       
@@ -558,7 +574,7 @@ for(team_id in team_no) {
     }
   }
   
-
+  
   ### Add to Results ##########
   starter_table$team_id = 
     optimal_table$team_id = 
@@ -570,17 +586,17 @@ for(team_id in team_no) {
     optimal_table$scoring_period_id = 
     bench_summary$scoring_period_id = 
     starters_all_stats$scoring_period_id = 
-    bench_all_stats$scoring_period_id = scoring_period_id
+    bench_all_stats$scoring_period_id = paste0("scoring_period_",scoring_period)
   
   starters_all_stats$SLOT = starter_table$SLOT[match(starters_all_stats$PLAYER,starter_table$PLAYER)]
   starters_all_stats = starters_all_stats[match(starter_table$SLOT,starters_all_stats$SLOT),]
   starters_all_stats$color = google.colors[1:nrow(starters_all_stats)]
   
-  team_tables_all[[team_id]][[paste0("scoring_period_",scoring_period_id)]][["starter_table"]] = starter_table
-  team_tables_all[[team_id]][[paste0("scoring_period_",scoring_period_id)]][["optimal_table"]] = optimal_table
-  team_tables_all[[team_id]][[paste0("scoring_period_",scoring_period_id)]][["bench_summary"]] = bench_summary
-  team_tables_all[[team_id]][[paste0("scoring_period_",scoring_period_id)]][["starters_all_stats"]] = starters_all_stats
-  team_tables_all[[team_id]][[paste0("scoring_period_",scoring_period_id)]][["bench_all_stats"]] = bench_all_stats
+  team_tables_all[[team_id]][[paste0("scoring_period_",scoring_period)]][["starter_table"]] = starter_table
+  team_tables_all[[team_id]][[paste0("scoring_period_",scoring_period)]][["optimal_table"]] = optimal_table
+  team_tables_all[[team_id]][[paste0("scoring_period_",scoring_period)]][["bench_summary"]] = bench_summary
+  team_tables_all[[team_id]][[paste0("scoring_period_",scoring_period)]][["starters_all_stats"]] = starters_all_stats
+  team_tables_all[[team_id]][[paste0("scoring_period_",scoring_period)]][["bench_all_stats"]] = bench_all_stats
 }
 
 
@@ -598,6 +614,7 @@ optimal_list = lapply(team_tables_all,function(x) {
   out = do.call(rbind,lapply(x, function(y) {y[["optimal_table"]]}))
 })
 optimal_all = do.call(rbind,optimal_list)
+if(sum(is.na(actual_all$PLAYER))>0) actual_all = actual_all[-which(is.na(actual_all$PLAYER)),]
 
 write.csv(actual_all, file=paste0(shiny_directory,"www/data_files/team_tables_actual_all.csv"), row.names=F)
 write.csv(bench_all, file=paste0(shiny_directory,"www/data_files/team_tables_bench_all.csv"), row.names=F)
