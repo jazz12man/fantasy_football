@@ -1,8 +1,18 @@
 ### Setup ####
-league_id = "1193762"
 season_id = "2014"
-shiny_directory = "/home/jazz12man/ShinyApps/ff14_premier_league/"
 shared_football_directory = "/home/jazz12man/fantasy_football/"
+
+league_id = "1193762" # Premier League
+shiny_directory = "/home/jazz12man/ShinyApps/ff14_premier_league/"
+
+league_id = "1182793" # Burbank Blunder
+shiny_directory = "/home/jazz12man/ShinyApps/ff14_BB/"
+
+league_id = "731939" # Avocado Gridiron
+shiny_directory = "/home/jazz12man/ShinyApps/ff14_AG/"
+
+league_id = "660626" # VT
+shiny_directory = "/home/jazz12man/ShinyApps/ff14_VT/"
 
 ### Source Librarys ####
 library(shiny)
@@ -13,7 +23,7 @@ library(XML)
 library(data.table)
 library(reshape2)
 
-### Source Files - set league values ####
+## Source Files - set league values
 source("/home/jazz12man/fantasy_football/team_owners_table.R")
 teams_table_in = teams_table_fun(league_id,season_id)
 team_vals = teams_table_in$team_vals
@@ -28,6 +38,16 @@ positions_table = settings$positions_table
 all_matchups = settings$all_matchups
 scoring_period_table = settings$scoring_period_table
 draft_date = settings$draft_date
+no_playoff_teams = settings$no_playoff_teams
+byes = settings$byes
+weeks_per_round = settings$weeks_per_round
+no_playoff_rounds = settings$no_playoff_rounds
+source("/home/jazz12man/fantasy_football/image_points.R")
+source("/home/jazz12man/fantasy_football/other_functions.R")
+source(paste0(shared_football_directory,"bracket_creator.R"))
+
+scoring_period_matchups = read.csv(file = paste0(shiny_directory,"www/data_files/scoring_period_matchups.csv"),
+                                   stringsAsFactors=F)
 
 scoring_period = which(scoring_period_table$end_date >= Sys.Date() & scoring_period_table$start_date <= Sys.Date()) - 1
 
@@ -38,3 +58,5 @@ source(paste0(shared_football_directory,"scoring_leaders_table.R"))
 source(paste0(shared_football_directory,"team_scoring_period_tables.R"))
 source(paste0(shared_football_directory,"scoring_projections_table.R"))
 source(paste0(shared_football_directory,"transactions_crawler.R"))
+source(paste0(shared_football_directory,"playoff_odds_calculator.R"))
+

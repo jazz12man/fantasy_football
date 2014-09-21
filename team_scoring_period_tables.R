@@ -10,7 +10,7 @@ load(file=paste0(shiny_directory,"/www/data_files/scoring_leaders_scoring_period
 scoring_leaders_table = scoring_leaders_scoring_period[[paste0("scoring_period_",scoring_period)]]
 
 ## initialize team_tables_all (only at start of season, then load)
-# team_tables_all = sapply(team_no,function(x) NULL)
+# team_tables_all = sapply(teams_table$team_no,function(x) NULL)
 # team_tables_all = lapply(team_tables_all,function(x) sapply(all_matchups,function(y) NULL))
 load(file=paste0(shiny_directory,"/www/data_files/team_tables_all.Rdata"))
 
@@ -38,7 +38,6 @@ for(team_id in teams_table$team_no) {
     name_split = do.call(rbind,strsplit(x[,2],","))
     name = gsub("\\*","",name_split[,1])
     name = gsub(" D/ST\u00A0D/ST","",name)
-    
     if(length(name_split)>1) {
       team_pos = do.call(rbind,strsplit(name_split[,2],"\u00A0"))
       team = gsub(" ","",team_pos[,1])
@@ -55,6 +54,7 @@ for(team_id in teams_table$team_no) {
       name = team = strsplit(name[[1]]," ")[[1]][1]
       pos = "DST"
     }
+    
     slot = x[,1]
     player_tables_out = x[,-c(1:4)]
     table_out = cbind(data.frame(PLAYER=name,
@@ -70,7 +70,10 @@ for(team_id in teams_table$team_no) {
     table_out = table_out[-c(1:data_start),]
     colnames(table_out) = colnames_i
     table_out = table_out[,-which(colnames_i=="remove")]
-    
+    # lineup not set for
+    table_out$PLAYER[table_out$PLAYER=="\u00A0"] = "None Set"
+    table_out$POS[table_out$POS==""] = table_out$SLOT[table_out$POS==""]
+    table_out$POS[table_out$POS %in% c("FLEX","RB/WR")] = "RB"
     return(table_out)
   })
   names(player_tables_all) = lapply(player_tables_all,function(x) {

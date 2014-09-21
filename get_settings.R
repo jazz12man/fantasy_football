@@ -62,6 +62,18 @@ get_settings = function(league_id, season_id) {
   no_playoffs2 = strsplit(no_playoffs1,"\\(")[[1]][2]
   no_playoffs = as.numeric(strsplit(no_playoffs2," ")[[1]][1])
   playoff_weeks = paste0("playoff_",1:no_playoffs)
+  # playoff teams
+  no_playoff_teams = as.numeric(strsplit(no_playoffs1," ")[[1]][1])
+  if(length(grep("Byes",no_playoffs2))>0) {
+    byes1 = strsplit(no_playoffs2,",")[[1]][2]
+    byes2 = gsub(" Byes)","", byes1)
+    byes = as.numeric(byes2)
+  } else {
+    byes = 0
+  }
+  weeks_per_round1 = playoffs_weeks$V2[grep("weeks per round",playoffs_weeks$V2)]
+  weeks_per_round = as.numeric(gsub(" weeks per round","",weeks_per_round1))
+  
   # all matchups
   all_matchups = c(matchup_weeks,playoff_weeks)
   names(all_matchups) = gsub("_"," ",all_matchups)
@@ -122,5 +134,9 @@ get_settings = function(league_id, season_id) {
               positions_table=positions_table,
               all_matchups=all_matchups,
               scoring_period_table=scoring_period_table,
-              draft_date=draft_date))
+              draft_date=draft_date,
+              no_playoff_teams=no_playoff_teams,
+              no_playoff_rounds=no_playoff_rounds,
+              byes=byes,
+              weeks_per_round=weeks_per_round))
 }
