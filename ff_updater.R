@@ -1,8 +1,15 @@
 ### Setup ####
-league_id = "1193762"
 season_id = "2014"
-shiny_directory = "/home/jazz12man/ShinyApps/ff14_premier_league/"
 shared_football_directory = "/home/jazz12man/fantasy_football/"
+
+league_id = "1193762" # Premier League
+shiny_directory = "/home/jazz12man/ShinyApps/ff14_premier_league/"
+
+league_id = "1182793" # Burbank Blunder
+shiny_directory = "/home/jazz12man/ShinyApps/ff14_BB/"
+
+league_id = "731939" # Avocado Gridiron
+shiny_directory = "/home/jazz12man/ShinyApps/ff14_AG/"
 
 ### Source Librarys ####
 library(shiny)
@@ -28,6 +35,7 @@ positions_table = settings$positions_table
 all_matchups = settings$all_matchups
 scoring_period_table = settings$scoring_period_table
 draft_date = settings$draft_date
+source(paste0(shared_football_directory,"other_functions.R"))
 
 scoring_period = which(scoring_period_table$end_date >= Sys.Date() & scoring_period_table$start_date <= Sys.Date()) - 1
 

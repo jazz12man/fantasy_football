@@ -1,4 +1,5 @@
-url = "http://games.espn.go.com/ffl/schedule?leagueId=1193762"
+
+url = paste0("http://games.espn.go.com/ffl/schedule?leagueId=",league_id)
 
 # Pull in and manipulate URL
 url_in = getURL(url)
@@ -37,5 +38,4 @@ scoring_period_matchups = do.call(rbind,lapply(1:length(starts), function(y) {
 )
 
 write.csv(scoring_period_matchups,paste0(shiny_directory,"www/data_files/scoring_period_matchups.csv"),row.names=F)
-
-write.csv(matchup_dates,paste0(shiny_directory,"www/data_files/matchup_dates.csv"),row.names=F)
+# write.csv(matchup_dates,paste0(shiny_directory,"www/data_files/matchup_dates.csv"),row.names=F)
