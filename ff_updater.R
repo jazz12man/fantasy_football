@@ -11,9 +11,12 @@ shiny_directory = "/home/jazz12man/ShinyApps/ff14_BB/"
 league_id = "731939" # Avocado Gridiron
 shiny_directory = "/home/jazz12man/ShinyApps/ff14_AG/"
 
+<<<<<<< HEAD
 league_id = "660626" # VT
 shiny_directory = "/home/jazz12man/ShinyApps/ff14_VT/"
 
+=======
+>>>>>>> 6df677896335089a14190efbc967c493299df873
 ### Source Librarys ####
 library(shiny)
 library(rCharts)
@@ -38,6 +41,7 @@ positions_table = settings$positions_table
 all_matchups = settings$all_matchups
 scoring_period_table = settings$scoring_period_table
 draft_date = settings$draft_date
+<<<<<<< HEAD
 no_playoff_teams = settings$no_playoff_teams
 byes = settings$byes
 weeks_per_round = settings$weeks_per_round
@@ -48,6 +52,9 @@ source(paste0(shared_football_directory,"bracket_creator.R"))
 
 scoring_period_matchups = read.csv(file = paste0(shiny_directory,"www/data_files/scoring_period_matchups.csv"),
                                    stringsAsFactors=F)
+=======
+source(paste0(shared_football_directory,"other_functions.R"))
+>>>>>>> 6df677896335089a14190efbc967c493299df873
 
 scoring_period = which(scoring_period_table$end_date >= Sys.Date() & scoring_period_table$start_date <= Sys.Date()) - 1
 
