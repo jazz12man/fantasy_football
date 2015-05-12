@@ -52,7 +52,11 @@ type = scoring_leaders_table$TYPE
 type[grep("WA \\(",type)] = "FA"
 colnames(scoring_leaders_table) = gsub("\u00A0","",colnames(scoring_leaders_table))
 
-COMP_ATT = data.frame(do.call(rbind,strsplit(scoring_leaders_table[,"C/A"],"/")),stringsAsFactors=F)
+if(nrow(scoring_leaders_table)==1) {
+  COMP_ATT = data.frame(COMP=NA,ATT=NA,stringsAsFactors=F)
+} else {
+  COMP_ATT = data.frame(do.call(rbind,strsplit(scoring_leaders_table[,"C/A"],"/")),stringsAsFactors=F)  
+}
 colnames(COMP_ATT) = c("COMP","ATT")
 scoring_leaders_table = scoring_leaders_table[,-c(1:6)]
 scoring_leaders_table = cbind( data.frame(PLAYER=name,

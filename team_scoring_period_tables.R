@@ -146,9 +146,14 @@ for(team_id in teams_table$team_no) {
       kick_cols = c("1-39","40-49","50+","TOT","XP")
       player_tables_i[player_tables_i=="--"] = "--/--"
       splits = lapply(kick_cols,function(x) strsplit(player_tables_i[,x],"/"))
-      kick_vals = data.frame(matrix(unlist(lapply(splits,function(x) x[[1]])),
-                                    nrow=nrow(player_tables_i),
-                                    byrow=T),stringsAsFactors=F)
+      kick_vals = data.frame(
+        matrix(unlist(lapply(splits,function(x) {
+          x_kick = x[[1]]
+          if(length(x_kick)==0) x_kick = c("--","--")
+          return(x_kick)
+        })),
+        nrow=nrow(player_tables_i),
+        byrow=T),stringsAsFactors=F)
       names(kick_vals) = c("MADE_1_39","ATT_1_39","MADE_40_49","ATT_40_49",
                            "MADE_50P","ATT_50P","MADE_TOT","ATT_TOT","MADE_XP","ATT_XP")
       player_tables_i[,names(kick_vals)] = kick_vals
@@ -179,9 +184,14 @@ for(team_id in teams_table$team_no) {
     } else if(names(bench_tables_all)[[i]]=="KICKERS") {
       kick_cols = c("1-39","40-49","50+","TOT","XP")
       splits = lapply(kick_cols,function(x) strsplit(bench_tables_i[,x],"/"))
-      kick_vals = data.frame(matrix(unlist(lapply(splits,function(x) x[[1]])),
-                                    nrow=nrow(bench_tables_i),
-                                    byrow=T),stringsAsFactors=F)
+      kick_vals = data.frame(
+        matrix(unlist(lapply(splits,function(x) {
+          x_kick = x[[1]]
+          if(length(x_kick)==0) x_kick = c("--","--")
+          return(x_kick)
+        })),
+        nrow=nrow(bench_tables_i),
+        byrow=T),stringsAsFactors=F)
       names(kick_vals) = c("MADE_1_39","ATT_1_39","MADE_40_49","ATT_40_49",
                            "MADE_50P","ATT_50P","MADE_TOT","ATT_TOT","MADE_XP","ATT_XP")
       bench_tables_i[,names(kick_vals)] = kick_vals

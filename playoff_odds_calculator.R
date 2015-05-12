@@ -1,6 +1,10 @@
+actual_all = read.csv(file=paste0(shiny_directory,"www/data_files/team_tables_actual_all.csv"),
+                      stringsAsFactors=F)
+completed_scoring_periods = 1:(which(scoring_period_table$end_date >= Sys.Date() & scoring_period_table$start_date <= Sys.Date()) - 2)
 
 ## Get scores
-scores = dcast(actual_all, team_id~scoring_period_id, fun.aggregate=sum, value.var = "PTS")
+scores = dcast(actual_all, team_id~scoring_period_id, fun.aggregate=sum, value.var = "PTS",na.rm=T)
+scores = scores[,c("team_id",paste0("scoring_period_",completed_scoring_periods))]
 scores_m = melt(scores, id.var="team_id")
 
 scoring_period_matchups[scoring_period_matchups$scoring_period_id %in% colnames(scores),]
@@ -20,17 +24,29 @@ colnames(vals2)[colnames(vals2)=="value"] = "team2_score"
 vals_all = merge(vals1,vals2,sort=F)
 vals_all = vals_all[,c("scoring_period_id","team1","team2","team1_score","team2_score")]
 
-library(lme4)
+# library(lme4,lib.loc="/home/jazz12man/R/library")
 
-m1 = lmer(value ~ (1 | team_id),data=scores_m)
-m1sum = summary(m1)
+# m1 = lmer(value ~ (1 | team_id),data=scores_m)
+# m1sum = summary(m1)
+delta_means = (tapply(scores_m$value,scores_m$team_id,mean) - mean(scores_m$value))/3
 
 scores_all = sapply(teams_table$team_no,function(x) NULL)
 for(qq in teams_table$team_no) {
-  scores_all[[qq]] = rnorm(100000,
-                           fixef(m1) + ranef(m1)$team_id[qq,],
-                           sqrt(m1sum$varcor$team[1] + m1sum$coefficients[1,"Std. Error"]^2)) +
-    rnorm(100000,0,sigma(m1))
+#   if(sum(ranef(m1)$team_id)<0.001) {
+      scores_all[[qq]] = rnorm(100000,
+                               mean(scores_m$value) + delta_means[qq],
+                               sqrt(1 + sd(scores_m$value[scores_m$team_id==qq]))) +
+        rnorm(100000,0,sd(scores_m$value))
+#       scores_all[[qq]] = rnorm(100000,
+#                              fixef(m1) + delta_means[qq],
+#                              sqrt(1 + m1sum$coefficients[1,"Std. Error"]^2)) +
+#       rnorm(100000,0,sigma(m1))
+#   } else {
+#     scores_all[[qq]] = rnorm(100000,
+#                              fixef(m1) + ranef(m1)$team_id[qq,],
+#                              sqrt(m1sum$varcor$team[1] + m1sum$coefficients[1,"Std. Error"]^2)) +
+#       rnorm(100000,0,sigma(m1))
+#   }
 }
 
 scores_matrix = matrix(NA,nrow(teams_table),nrow(teams_table))

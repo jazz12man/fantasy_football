@@ -38,6 +38,7 @@ while(ind0==1) {
 
 
 scoring_projections_all = do.call(rbind,projections_all)
+scoring_projections_all = scoring_projections_all[order(scoring_projections_all$PTS),]
 last_relevant_row = min(which(scoring_projections_all$PTS == "--" | is.na(scoring_projections_all$PTS)))-1
 scoring_projections_all = scoring_projections_all[1:last_relevant_row,]
 
